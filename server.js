@@ -10,7 +10,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DB_PATH = path.join(__dirname, 'db.json');
 
 const mailer = nodemailer.createTransport({
-  host: 'smtp.office365.com',
+  host: 'smtp-mail.outlook.com',
   port: 587,
   secure: false,
   auth: {

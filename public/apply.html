@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Request More Information – Private Yacht Club</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garant:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -13,13 +14,15 @@
       --gold: #c9a84c;
       --gold-light: #e2c87a;
       --white: #f8f6f1;
+      --font-display: 'Cormorant Garant', Georgia, serif;
+      --font-body: 'DM Sans', Arial, sans-serif;
       --text: #d4cfc7;
       --muted: #7a8a99;
       --error: #e05a5a;
     }
 
     body {
-      font-family: 'Georgia', serif;
+      font-family: var(--font-body);
       background: var(--navy);
       color: var(--text);
       min-height: 100vh;
@@ -129,10 +132,30 @@
     .form-section {
       flex: 1;
       padding: 48px 24px 64px;
+      background: url('/yacht-bg.png') center/cover fixed;
+      position: relative;
+    }
+    .form-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 12, 22, 0.84);
+      z-index: 0;
     }
     .form-inner {
       max-width: 560px;
       margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      background: rgba(8, 20, 36, 0.65);
+      border: 1px solid rgba(201, 168, 76, 0.16);
+      border-radius: 4px;
+      padding: 48px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    @media (max-width: 600px) {
+      .form-inner { padding: 28px 20px; }
     }
 
     /* ── PROGRESS ── */
@@ -140,45 +163,50 @@
       display: flex;
       align-items: center;
       gap: 0;
-      margin-bottom: 48px;
-      font-family: 'Arial', sans-serif;
+      margin-bottom: 44px;
+      font-family: var(--font-body);
     }
     .progress-step {
       flex: 1;
       text-align: center;
-      font-size: 11px;
-      letter-spacing: 1.5px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 2px;
       text-transform: uppercase;
-      color: var(--muted);
+      color: rgba(122,138,153,0.5);
       position: relative;
-      padding-bottom: 10px;
+      padding-bottom: 12px;
     }
     .progress-step::after {
       content: '';
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      height: 2px;
-      background: var(--navy-mid);
+      height: 1px;
+      background: rgba(255,255,255,0.07);
     }
     .progress-step.active { color: var(--gold); }
-    .progress-step.active::after { background: var(--gold); }
-    .progress-step.done { color: rgba(201,168,76,0.4); }
-    .progress-step.done::after { background: rgba(201,168,76,0.3); }
+    .progress-step.active::after { background: var(--gold); height: 1px; }
+    .progress-step.done { color: rgba(201,168,76,0.35); }
+    .progress-step.done::after { background: rgba(201,168,76,0.25); }
 
     /* ── FORM ELEMENTS ── */
     .step-title {
-      font-size: 24px;
-      font-weight: 400;
+      font-family: var(--font-display);
+      font-size: 34px;
+      font-weight: 300;
       color: var(--white);
       margin-bottom: 8px;
-      letter-spacing: -0.3px;
+      letter-spacing: 0.3px;
+      line-height: 1.15;
     }
     .step-desc {
-      font-size: 14px;
+      font-size: 13px;
       color: var(--muted);
-      font-family: 'Arial', sans-serif;
+      font-family: var(--font-body);
+      font-weight: 300;
       margin-bottom: 36px;
-      line-height: 1.6;
+      line-height: 1.7;
+      letter-spacing: 0.2px;
     }
     .notice {
       background: rgba(201,168,76,0.08);
@@ -294,28 +322,53 @@
       flex: 1;
       padding: 80px 24px;
       text-align: center;
+      background: url('/yacht-bg.png') center/cover fixed;
+      position: relative;
+    }
+    .confirmation::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(4, 12, 22, 0.84);
+      z-index: 0;
+    }
+    .confirmation-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 480px;
+      margin: 0 auto;
+      background: rgba(8, 20, 36, 0.65);
+      border: 1px solid rgba(201, 168, 76, 0.16);
+      border-radius: 4px;
+      padding: 56px 40px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
     }
     .confirmation-icon {
       width: 64px; height: 64px;
-      border: 2px solid var(--gold);
+      border: 1px solid var(--gold);
       border-radius: 50%;
       margin: 0 auto 32px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
+      font-size: 26px;
+      color: var(--gold);
     }
     .confirmation h2 {
-      font-size: 32px;
-      font-weight: 400;
+      font-family: var(--font-display);
+      font-size: 36px;
+      font-weight: 300;
       color: var(--white);
       margin-bottom: 16px;
+      letter-spacing: 0.3px;
     }
     .confirmation p {
-      font-size: 16px;
+      font-size: 14px;
+      font-weight: 300;
       color: var(--muted);
-      font-family: Arial, sans-serif;
-      max-width: 480px;
+      font-family: var(--font-body);
+      max-width: 380px;
       margin: 0 auto;
-      line-height: 1.7;
+      line-height: 1.8;
     }
 
     /* ── FOOTER ── */
@@ -438,26 +491,22 @@
         <div class="step-title">Non-Disclosure Agreement</div>
         <p class="step-desc">Please read the following agreement carefully before accepting.</p>
         <div class="nda-box">
-          <h3>Confidentiality &amp; Non-Disclosure Agreement</h3>
-          <p><em>— NDA text to be provided by client —</em></p>
-          <p>
-            This Non-Disclosure Agreement ("Agreement") is entered into between the Private Yacht Club ("Disclosing Party") and the undersigned individual ("Recipient").
-          </p>
-          <p>
-            1. <strong>Confidential Information.</strong> The Recipient acknowledges that all information, documents, and materials shared by the Private Yacht Club — including but not limited to membership details, pricing, financial structures, ownership arrangements, and strategic plans — constitute proprietary and confidential information ("Confidential Information").
-          </p>
-          <p>
-            2. <strong>Obligations.</strong> The Recipient agrees not to disclose, reproduce, or share any Confidential Information with third parties without the prior written consent of the Private Yacht Club, and to use such information solely for the purpose of evaluating membership.
-          </p>
-          <p>
-            3. <strong>Duration.</strong> This obligation of confidentiality shall remain in effect for a period of five (5) years from the date of acceptance.
-          </p>
-          <p>
-            4. <strong>Governing Law.</strong> This Agreement shall be governed by applicable law.
-          </p>
-          <p style="font-style: italic; color: #7a8a99; font-size: 12px; margin-top: 16px;">
-            Note: This is a placeholder. Final legal text to be provided by the client.
-          </p>
+          <h3>Non-Disclosure Agreement</h3>
+          <p>This Non-Disclosure Agreement (the <strong>"Agreement"</strong>) is entered into as of the date of acceptance between <strong>Private Yacht Club</strong>, a private membership organisation (the <strong>"Company"</strong>), and the individual accepting this Agreement (the <strong>"Recipient"</strong>).</p>
+
+          <p><strong>1. Confidential Information.</strong> For purposes of this Agreement, "Confidential Information" means any and all non-public information disclosed by the Company to the Recipient, whether orally, in writing, electronically, or by any other means, including but not limited to: membership structures, ownership arrangements, financial terms, pricing, vessel details, business strategies, contractual arrangements, prospective members, and any documents or materials relating to the Company's operations or affairs.</p>
+
+          <p><strong>2. Obligations of the Recipient.</strong> The Recipient agrees to: (a) hold all Confidential Information in strict confidence; (b) not disclose, publish, reproduce, or transmit any Confidential Information to any third party without the prior written consent of the Company; (c) use the Confidential Information solely for the purpose of evaluating potential membership in the Private Yacht Club; and (d) take all reasonable measures to protect the Confidential Information from unauthorised disclosure, using at least the same degree of care used to protect its own confidential information, but in no event less than reasonable care.</p>
+
+          <p><strong>3. Exclusions.</strong> The obligations under this Agreement shall not apply to information that: (a) is or becomes publicly available through no act or omission of the Recipient; (b) was lawfully in the Recipient's possession prior to disclosure; or (c) is required to be disclosed by applicable law or court order, provided that the Recipient gives the Company prompt written notice of such requirement.</p>
+
+          <p><strong>4. Consequences of Breach.</strong> The Recipient acknowledges that any breach or threatened breach of this Agreement would cause irreparable harm to the Company for which monetary damages would be inadequate. Accordingly, the Company shall be entitled to seek injunctive relief and any other remedies available at law or in equity, without the requirement to post any bond or other security. The Recipient shall also be liable for all direct and indirect damages arising from any unauthorised disclosure.</p>
+
+          <p><strong>5. Duration.</strong> This Agreement shall remain in full force and effect for a period of five (5) years from the date of acceptance, unless earlier terminated in writing by the Company.</p>
+
+          <p><strong>6. Governing Law.</strong> This Agreement shall be governed by and construed in accordance with the laws of Germany. Any disputes arising in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Munich, Germany.</p>
+
+          <p><strong>7. Entire Agreement.</strong> This Agreement constitutes the entire agreement between the parties with respect to its subject matter and supersedes all prior and contemporaneous understandings. No modification of this Agreement shall be valid unless made in writing and signed by both parties.</p>
         </div>
         <div class="checkbox-row">
           <input type="checkbox" id="ndaCheck" onchange="updateSubmit()" />
@@ -477,9 +526,11 @@
 
   <!-- CONFIRMATION -->
   <div class="confirmation" id="confirmation" style="display:none;">
-    <div class="confirmation-icon">✓</div>
-    <h2>Application Received</h2>
-    <p>Thank you for your interest in the Private Yacht Club. We have sent a confirmation and our exclusive membership handout to your email address. Our team will be in touch.</p>
+    <div class="confirmation-inner">
+      <div class="confirmation-icon">✓</div>
+      <h2>Application Received</h2>
+      <p>Thank you for your interest in the Private Yacht Club. We have sent a confirmation and our exclusive membership handout to your email address. Our team will be in touch.</p>
+    </div>
   </div>
 
   <footer>© Private Yacht Club · All rights reserved · membershippyc@outlook.de</footer>
