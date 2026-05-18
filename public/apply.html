@@ -46,25 +46,47 @@
       transform: scale(1.09);
       z-index: 0;
     }
+    #heroFade {
+      position: absolute;
+      inset: 0;
+      background: #050e18;
+      opacity: 0;
+      z-index: 1;
+      transition: opacity 1.2s ease;
+      pointer-events: none;
+    }
     .hero::after {
       content: '';
       position: absolute;
       inset: 0;
-      background: linear-gradient(to bottom, rgba(5,14,24,0.45) 0%, rgba(5,14,24,0.72) 100%);
-      z-index: 1;
+      background: linear-gradient(to bottom, rgba(5,14,24,0.42) 0%, rgba(5,14,24,0.70) 100%);
+      z-index: 2;
     }
     .hero-content {
       position: relative;
-      z-index: 2;
+      z-index: 3;
       padding: 64px 24px 56px;
     }
     .hero-eyebrow {
       font-family: 'Arial', sans-serif;
-      font-size: 11px;
-      letter-spacing: 4px;
+      font-size: 10px;
+      letter-spacing: 5px;
       text-transform: uppercase;
       color: var(--gold);
-      margin-bottom: 20px;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .hero-eyebrow::before,
+    .hero-eyebrow::after {
+      content: '';
+      width: 40px;
+      height: 1px;
+      background: var(--gold);
+      opacity: 0.6;
+      flex-shrink: 0;
     }
     .hero h1 {
       font-size: clamp(28px, 5vw, 52px);
@@ -77,7 +99,8 @@
     .hero h1 em { color: var(--gold); font-style: italic; }
     .hero-sub {
       font-size: 16px;
-      color: var(--muted);
+      color: rgba(255, 255, 255, 0.88);
+      text-shadow: 0 1px 12px rgba(0, 0, 0, 0.75);
       max-width: 540px;
       margin: 0 auto 40px;
       line-height: 1.7;
@@ -313,6 +336,7 @@
     <video autoplay muted loop playsinline id="heroVideo">
       <source src="/hero.mp4" type="video/mp4" />
     </video>
+    <div id="heroFade"></div>
     <div class="hero-content">
       <div class="hero-eyebrow">Private Membership · By Invitation</div>
       <h1>A Different Way to<br>Experience the <em>Sea</em></h1>
@@ -564,6 +588,24 @@
         btn.textContent = 'Submit Application';
       }
     }
+
+    // ── VIDEO LOOP CROSSFADE ──────────────────────────────────────────────────
+    (function () {
+      const video = document.getElementById('heroVideo');
+      const fade = document.getElementById('heroFade');
+      let fading = false;
+      video.addEventListener('timeupdate', function () {
+        const remaining = video.duration - video.currentTime;
+        if (!fading && remaining < 1.5 && remaining > 0) {
+          fading = true;
+          fade.style.opacity = '1';
+        }
+        if (fading && video.currentTime < 0.8) {
+          fade.style.opacity = '0';
+          fading = false;
+        }
+      });
+    })();
   </script>
 </body>
 </html>
