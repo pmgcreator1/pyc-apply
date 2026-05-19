@@ -10,12 +10,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 const DB_PATH = path.join(__dirname, 'db.json');
 
 const mailer = nodemailer.createTransport({
-  host: 'smtp-mail.outlook.com',
+  host: 'smtp-relay.brevo.com',
   port: 587,
   secure: false,
   auth: {
-    user: 'membershippyc@outlook.de',
-    pass: process.env.OUTLOOK_PASS,
+    user: process.env.BREVO_USER,
+    pass: process.env.BREVO_PASS,
   },
 });
 
