@@ -386,7 +386,7 @@
 
   <!-- HERO -->
   <div class="hero" id="hero">
-    <video autoplay muted loop playsinline id="heroVideo">
+    <video autoplay muted loop playsinline id="heroVideo" aria-hidden="true">
       <source src="/hero.mp4" type="video/mp4" />
     </video>
     <div id="heroFade"></div>
@@ -418,20 +418,20 @@
         <p class="step-desc">All information is treated with the strictest confidentiality.</p>
         <div class="two-col">
           <div class="field">
-            <label>First Name</label>
+            <label for="firstName">First Name</label>
             <input type="text" id="firstName" placeholder="James" autocomplete="given-name" />
           </div>
           <div class="field">
-            <label>Last Name</label>
+            <label for="lastName">Last Name</label>
             <input type="text" id="lastName" placeholder="Richardson" autocomplete="family-name" />
           </div>
         </div>
         <div class="field">
-          <label>Email Address</label>
+          <label for="email">Email Address</label>
           <input type="email" id="email" placeholder="james@example.com" autocomplete="email" />
         </div>
         <div class="field">
-          <label>Phone Number</label>
+          <label for="phone">Phone Number</label>
           <input type="tel" id="phone" placeholder="+49 170 000 0000" autocomplete="tel" />
         </div>
         <p class="error-msg" id="err1" style="display:none;"></p>
@@ -447,15 +447,15 @@
           The following information helps us evaluate your application and ensures that new members complement our existing community. All details remain strictly confidential.
         </div>
         <div class="field">
-          <label>Job Title / Profession</label>
+          <label for="jobTitle">Job Title / Profession</label>
           <input type="text" id="jobTitle" placeholder="e.g. CEO, Managing Director, Partner" />
         </div>
         <div class="field">
-          <label>Company / Organisation <span class="optional">(optional)</span></label>
+          <label for="company">Company / Organisation <span class="optional">(optional)</span></label>
           <input type="text" id="company" placeholder="e.g. Acme Capital GmbH" />
         </div>
         <div class="field">
-          <label>Industry / Sector</label>
+          <label for="industry">Industry / Sector</label>
           <select id="industry">
             <option value="" disabled selected>Select your industry</option>
             <option>Finance &amp; Investment</option>
@@ -472,11 +472,11 @@
           </select>
         </div>
         <div class="field">
-          <label>LinkedIn Profile URL <span class="optional">(optional)</span></label>
+          <label for="linkedin">LinkedIn Profile URL <span class="optional">(optional)</span></label>
           <input type="url" id="linkedin" placeholder="https://linkedin.com/in/yourname" />
         </div>
         <div class="field">
-          <label>Other Social Media <span class="optional">(optional)</span></label>
+          <label for="social">Other Social Media <span class="optional">(optional)</span></label>
           <input type="text" id="social" placeholder="Instagram, Twitter, etc." />
         </div>
         <p class="error-msg" id="err2" style="display:none;"></p>
@@ -514,7 +514,7 @@
             I have read and understood the Non-Disclosure Agreement and accept its terms unconditionally.
           </label>
         </div>
-        <p class="error-msg" id="errSubmit" style="display:none;">Something went wrong. Please try again or contact membershippyc@outlook.de</p>
+        <p class="error-msg" id="errSubmit" style="display:none;">Something went wrong. Please try again or contact our membership team.</p>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="goStep(2)">Back</button>
           <button class="btn btn-primary" id="submitBtn" onclick="submitForm()" disabled>Submit Application</button>
@@ -533,7 +533,7 @@
     </div>
   </div>
 
-  <footer>© Private Yacht Club · All rights reserved · membershippyc@outlook.de</footer>
+  <footer>© Private Yacht Club · All rights reserved</footer>
 
   <script>
     let currentStep = 1;
@@ -605,8 +605,11 @@
     function v(id) { return document.getElementById(id).value.trim().length > 0; }
     function g(id) { return document.getElementById(id).value.trim(); }
 
+    let submitting = false;
     async function submitForm() {
-      if (!document.getElementById('ndaCheck').checked) return;
+      const ndaBox = document.getElementById('ndaCheck');
+      if (!ndaBox.checked || submitting) return;
+      submitting = true;
       const btn = document.getElementById('submitBtn');
       btn.disabled = true;
       btn.textContent = 'Submitting…';
@@ -626,7 +629,7 @@
             industry: g('industry'),
             linkedin: g('linkedin'),
             social: g('social'),
-            ndaAccepted: true,
+            ndaAccepted: ndaBox.checked,
           }),
         });
         if (!res.ok) throw new Error('Server error');
@@ -637,6 +640,7 @@
         document.getElementById('errSubmit').style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Submit Application';
+        submitting = false;
       }
     }
 
@@ -646,12 +650,20 @@
       const fade = document.getElementById('heroFade');
       let fading = false;
       video.addEventListener('timeupdate', function () {
+        if (isNaN(video.duration) || video.duration === 0) return;
         const remaining = video.duration - video.currentTime;
         if (!fading && remaining < 1.5 && remaining > 0) {
           fading = true;
           fade.style.opacity = '1';
         }
         if (fading && video.currentTime < 0.8) {
+          fade.style.opacity = '0';
+          fading = false;
+        }
+      });
+      // Safety reset: if the fade gets stuck, clear it on each loop
+      video.addEventListener('seeking', function () {
+        if (video.currentTime < 1) {
           fade.style.opacity = '0';
           fading = false;
         }
