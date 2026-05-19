@@ -11,6 +11,16 @@ const DB_PATH = path.join(__dirname, 'db.json');
 
 console.log('[startup] BREVO_API_KEY set:', !!process.env.BREVO_API_KEY);
 
+// Load handout PDF once at startup
+const HANDOUT_PATH = path.join(__dirname, 'assets', 'handout.pdf');
+let handoutB64 = null;
+try {
+  handoutB64 = fs.readFileSync(HANDOUT_PATH).toString('base64');
+  console.log('[startup] Handout PDF loaded:', Math.round(fs.statSync(HANDOUT_PATH).size / 1024) + 'KB');
+} catch {
+  console.log('[startup] Handout PDF not found — emails will send without attachment');
+}
+
 function loadDb() {
   try { return JSON.parse(fs.readFileSync(DB_PATH, 'utf8')); }
   catch { return { leads: [] }; }
@@ -26,7 +36,16 @@ function escHtml(str) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-async function sendEmail({ to, subject, html, fromName = 'Private Yacht Club' }) {
+async function sendEmail({ to, subject, html, fromName = 'Private Yacht Club', attachment = null }) {
+  const body = {
+    sender: { name: fromName, email: 'membershippyc@outlook.de' },
+    to: [{ email: to }],
+    subject,
+    htmlContent: html,
+  };
+  if (attachment) {
+    body.attachment = [{ content: attachment, name: 'PYC_Membership_Handout.pdf' }];
+  }
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -34,12 +53,7 @@ async function sendEmail({ to, subject, html, fromName = 'Private Yacht Club' })
       'api-key': process.env.BREVO_API_KEY,
       'content-type': 'application/json',
     },
-    body: JSON.stringify({
-      sender: { name: fromName, email: 'membershippyc@outlook.de' },
-      to: [{ email: to }],
-      subject,
-      htmlContent: html,
-    }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) {
     const errText = await res.text();
@@ -81,7 +95,8 @@ app.post('/api/apply', async (req, res) => {
   try {
     await sendEmail({
       to: email,
-      subject: 'Your Enquiry – Private Yacht Club',
+      subject: 'Your Exclusive Membership Handout – Private Yacht Club',
+      attachment: handoutB64,
       html: `
         <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #f8f6f1; padding: 40px;">
           <div style="border-bottom: 2px solid #c9a84c; padding-bottom: 20px; margin-bottom: 28px;">
@@ -90,10 +105,20 @@ app.post('/api/apply', async (req, res) => {
           </div>
           <p style="font-size: 16px; color: #0d1b2a; margin-bottom: 20px;">Dear ${escHtml(firstName)},</p>
           <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
-            Thank you for your enquiry. We confirm your acceptance of the Non-Disclosure Agreement dated ${dateStr}.
+            Thank you for your interest in the Private Yacht Club. Your Non-Disclosure Agreement has been accepted on ${dateStr}.
+          </p>
+          <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
+            ${handoutB64
+              ? 'Please find attached our exclusive membership handout with detailed information about the concept, the vessel, and the ownership structure.'
+              : 'Our team will be in touch shortly with detailed information about the membership concept.'
+            }
           </p>
           <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 32px;">
-            A member of our team will review your application and be in touch with you shortly to discuss the next steps.
+            Should you wish to learn more or schedule a personal call, please reach out directly via our private membership contact:
+            <br><a href="mailto:membershippyc@outlook.de" style="color: #c9a84c;">membershippyc@outlook.de</a>
+          </p>
+          <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 32px;">
+            We look forward to hearing from you.
           </p>
           <div style="border-top: 1px solid #ddd; padding-top: 20px;">
             <p style="font-family: Arial, sans-serif; font-size: 12px; color: #888; margin: 0;">
@@ -104,7 +129,7 @@ app.post('/api/apply', async (req, res) => {
       `,
     });
     applicantOk = true;
-    console.log('[email] Applicant confirmation sent to:', email);
+    console.log('[email] Applicant confirmation sent to:', email, handoutB64 ? '(with PDF)' : '(no PDF)');
   } catch (err) {
     console.error('[email] Applicant FAILED:', err.message);
   }
