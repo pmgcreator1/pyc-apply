@@ -48,6 +48,7 @@
       object-fit: cover;
       transform: scale(1.09);
       z-index: 0;
+      pointer-events: none;
     }
     #heroFade {
       position: absolute;
@@ -536,19 +537,17 @@
   <footer>© Private Yacht Club · All rights reserved</footer>
 
   <script>
-    // Force video autoplay on mobile (iOS Safari requires this)
-    document.addEventListener('DOMContentLoaded', function () {
+    // pointer-events:none on video hides the iOS native play button.
+    // First touch anywhere on page starts the video immediately.
+    (function () {
       const video = document.getElementById('heroVideo');
       if (!video) return;
-      const p = video.play();
-      if (p !== undefined) {
-        p.catch(function () {
-          document.addEventListener('touchstart', function () {
-            video.play();
-          }, { once: true });
-        });
-      }
-    });
+      video.play().catch(function () {
+        document.addEventListener('touchstart', function () {
+          video.play();
+        }, { once: true, passive: true });
+      });
+    })();
 
     let currentStep = 1;
 
