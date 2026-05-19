@@ -71,7 +71,7 @@ app.get('/', (req, res) => res.redirect('/apply'));
 app.post('/api/apply', async (req, res) => {
   const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, background, interest, investmentPerspective, ndaAccepted } = req.body;
 
-  if (!firstName || !lastName || !email || !phone || !jobTitle || !industry)
+  if (!firstName || !lastName || !email || !phone || !jobTitle || !industry || !background || !interest || !investmentPerspective)
     return res.status(400).json({ ok: false, error: 'Missing required fields' });
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
     return res.status(400).json({ ok: false, error: 'Invalid email address' });

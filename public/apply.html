@@ -128,6 +128,17 @@
       box-shadow: 0 4px 24px rgba(0,0,0,0.35);
     }
     .hero-cta:hover { background: var(--gold-light); transform: translateY(-1px); }
+    .hero-discrete {
+      margin-top: 28px;
+      font-family: 'Arial', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      color: rgba(255,255,255,0.3);
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.7;
+    }
 
     /* ── FORM WRAPPER ── */
     .form-section {
@@ -412,6 +423,7 @@
         Private access. Zero compromise.
       </p>
       <button class="hero-cta" onclick="startForm()">Request More Information</button>
+      <p class="hero-discrete">This is a private, invitation-only page. Access is strictly confidential and intended solely for individuals who have received a personal introduction to the Club.</p>
     </div>
   </div>
 
@@ -494,18 +506,18 @@
           <input type="text" id="social" placeholder="Instagram, Twitter, etc." />
         </div>
         <div class="field">
-          <label for="background">Personal Background <span class="optional">(optional)</span></label>
+          <label for="background">Personal Background</label>
           <textarea id="background" placeholder="e.g. Married, two children · Background in private equity and real estate"></textarea>
           <p class="field-hint">Family situation, career highlights, or anything else you'd like to share.</p>
         </div>
         <div class="field">
-          <label for="interest">Interest in the Private Yacht Club <span class="optional">(optional)</span></label>
+          <label for="interest">Interest in the Private Yacht Club</label>
           <textarea id="interest" placeholder="What draws you to the concept of shared yacht ownership?"></textarea>
         </div>
         <div class="field">
-          <label for="investmentPerspective">Investment Perspective <span class="optional">(optional)</span></label>
+          <label for="investmentPerspective">Investment Perspective</label>
           <select id="investmentPerspective">
-            <option value="" selected>Select...</option>
+            <option value="" disabled selected>Select...</option>
             <option>This fits comfortably within my portfolio</option>
             <option>This is a considered but manageable commitment</option>
             <option>I would like to explore the financial structure first</option>
@@ -635,7 +647,7 @@
         return true;
       }
       if (n === 2) {
-        const ok = v('jobTitle') && v('industry');
+        const ok = v('jobTitle') && v('industry') && v('background') && v('interest') && v('investmentPerspective');
         err.textContent = 'Please fill in all required fields.';
         err.style.display = ok ? 'none' : 'block';
         return ok;
