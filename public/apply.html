@@ -386,7 +386,7 @@
 
   <!-- HERO -->
   <div class="hero" id="hero">
-    <video autoplay muted loop playsinline id="heroVideo" aria-hidden="true">
+    <video autoplay muted loop playsinline webkit-playsinline id="heroVideo" aria-hidden="true">
       <source src="/hero.mp4" type="video/mp4" />
     </video>
     <div id="heroFade"></div>
@@ -536,6 +536,20 @@
   <footer>© Private Yacht Club · All rights reserved</footer>
 
   <script>
+    // Force video autoplay on mobile (iOS Safari requires this)
+    document.addEventListener('DOMContentLoaded', function () {
+      const video = document.getElementById('heroVideo');
+      if (!video) return;
+      const p = video.play();
+      if (p !== undefined) {
+        p.catch(function () {
+          document.addEventListener('touchstart', function () {
+            video.play();
+          }, { once: true });
+        });
+      }
+    });
+
     let currentStep = 1;
 
     function startForm() {
