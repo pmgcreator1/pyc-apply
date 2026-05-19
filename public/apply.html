@@ -239,7 +239,7 @@
       text-transform: none;
       font-size: 11px;
     }
-    .field input, .field select {
+    .field input, .field select, .field textarea {
       width: 100%;
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.12);
@@ -247,10 +247,23 @@
       padding: 13px 16px;
       font-size: 15px;
       color: var(--white);
-      font-family: 'Arial', sans-serif;
+      font-family: var(--font-body);
       transition: border-color 0.2s;
       outline: none;
       appearance: none;
+    }
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+      line-height: 1.6;
+    }
+    .field textarea::placeholder { color: var(--muted); }
+    .field-hint {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-body);
+      margin-top: 6px;
+      line-height: 1.5;
     }
     .field input:focus, .field select:focus {
       border-color: rgba(201,168,76,0.6);
@@ -480,6 +493,25 @@
           <label for="social">Other Social Media <span class="optional">(optional)</span></label>
           <input type="text" id="social" placeholder="Instagram, Twitter, etc." />
         </div>
+        <div class="field">
+          <label for="background">Personal Background <span class="optional">(optional)</span></label>
+          <textarea id="background" placeholder="e.g. Married, two children · Background in private equity and real estate"></textarea>
+          <p class="field-hint">Family situation, career highlights, or anything else you'd like to share.</p>
+        </div>
+        <div class="field">
+          <label for="interest">Interest in the Private Yacht Club <span class="optional">(optional)</span></label>
+          <textarea id="interest" placeholder="What draws you to the concept of shared yacht ownership?"></textarea>
+        </div>
+        <div class="field">
+          <label for="investmentPerspective">Investment Perspective <span class="optional">(optional)</span></label>
+          <select id="investmentPerspective">
+            <option value="" selected>Select...</option>
+            <option>This fits comfortably within my portfolio</option>
+            <option>This is a considered but manageable commitment</option>
+            <option>I would like to explore the financial structure first</option>
+            <option>Prefer not to specify</option>
+          </select>
+        </div>
         <p class="error-msg" id="err2" style="display:none;"></p>
         <div class="btn-row">
           <button class="btn btn-ghost" onclick="goStep(1)">Back</button>
@@ -642,6 +674,9 @@
             industry: g('industry'),
             linkedin: g('linkedin'),
             social: g('social'),
+            background: g('background'),
+            interest: g('interest'),
+            investmentPerspective: g('investmentPerspective'),
             ndaAccepted: ndaBox.checked,
           }),
         });

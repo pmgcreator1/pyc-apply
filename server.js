@@ -69,7 +69,7 @@ app.get('/apply', (req, res) => {
 app.get('/', (req, res) => res.redirect('/apply'));
 
 app.post('/api/apply', async (req, res) => {
-  const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, ndaAccepted } = req.body;
+  const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, background, interest, investmentPerspective, ndaAccepted } = req.body;
 
   if (!firstName || !lastName || !email || !phone || !jobTitle || !industry)
     return res.status(400).json({ ok: false, error: 'Missing required fields' });
@@ -84,7 +84,7 @@ app.post('/api/apply', async (req, res) => {
     id: crypto.randomUUID(),
     submittedAt: new Date().toISOString(),
     contact: { firstName, lastName, email, phone },
-    profile: { jobTitle, company: company || '', industry, linkedin: linkedin || '', social: social || '' },
+    profile: { jobTitle, company: company || '', industry, linkedin: linkedin || '', social: social || '', background: background || '', interest: interest || '', investmentPerspective: investmentPerspective || '' },
     ndaAccepted: true,
   });
   saveDb(db);
@@ -95,8 +95,7 @@ app.post('/api/apply', async (req, res) => {
   try {
     await sendEmail({
       to: email,
-      subject: 'Your Exclusive Membership Handout – Private Yacht Club',
-      attachment: handoutB64,
+      subject: 'Your Application – Private Yacht Club',
       html: `
         <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #f8f6f1; padding: 40px;">
           <div style="border-bottom: 2px solid #c9a84c; padding-bottom: 20px; margin-bottom: 28px;">
@@ -105,20 +104,13 @@ app.post('/api/apply', async (req, res) => {
           </div>
           <p style="font-size: 16px; color: #0d1b2a; margin-bottom: 20px;">Dear ${escHtml(firstName)},</p>
           <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
-            Thank you for your interest in the Private Yacht Club. Your Non-Disclosure Agreement has been accepted on ${dateStr}.
-          </p>
-          <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 16px;">
-            ${handoutB64
-              ? 'Please find attached our exclusive membership handout with detailed information about the concept, the vessel, and the ownership structure.'
-              : 'Our team will be in touch shortly with detailed information about the membership concept.'
-            }
+            Thank you for your enquiry and for signing our Non-Disclosure Agreement.
           </p>
           <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 32px;">
-            Should you wish to learn more or schedule a personal call, please reach out directly via our private membership contact:
-            <br><a href="mailto:membershippyc@outlook.de" style="color: #c9a84c;">membershippyc@outlook.de</a>
+            We have received your application and will review it carefully. You can expect to hear back from us within the next 48 hours, during which time we will assess whether the Private Yacht Club is the right fit for both parties.
           </p>
           <p style="font-size: 15px; line-height: 1.7; color: #333; margin-bottom: 32px;">
-            We look forward to hearing from you.
+            We look forward to being in touch.
           </p>
           <div style="border-top: 1px solid #ddd; padding-top: 20px;">
             <p style="font-family: Arial, sans-serif; font-size: 12px; color: #888; margin: 0;">
@@ -129,7 +121,7 @@ app.post('/api/apply', async (req, res) => {
       `,
     });
     applicantOk = true;
-    console.log('[email] Applicant confirmation sent to:', email, handoutB64 ? '(with PDF)' : '(no PDF)');
+    console.log('[email] Applicant confirmation sent to:', email);
   } catch (err) {
     console.error('[email] Applicant FAILED:', err.message);
   }
@@ -143,7 +135,7 @@ app.post('/api/apply', async (req, res) => {
         <div style="font-family: Arial, sans-serif; max-width: 600px; color: #1a1a2e;">
           <h2 style="color: #c9a84c; border-bottom: 1px solid #eee; padding-bottom: 12px;">New Membership Enquiry</h2>
           <table style="border-collapse: collapse; width: 100%; font-size: 14px;">
-            <tr><td style="padding:10px 8px;font-weight:bold;width:140px;color:#555;">Name</td><td style="padding:10px 8px;">${escHtml(firstName)} ${escHtml(lastName)}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;width:160px;color:#555;">Name</td><td style="padding:10px 8px;">${escHtml(firstName)} ${escHtml(lastName)}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Email</td><td style="padding:10px 8px;"><a href="mailto:${escHtml(email)}">${escHtml(email)}</a></td></tr>
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Phone</td><td style="padding:10px 8px;">${escHtml(phone)}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Job Title</td><td style="padding:10px 8px;">${escHtml(jobTitle)}</td></tr>
@@ -151,8 +143,11 @@ app.post('/api/apply', async (req, res) => {
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Industry</td><td style="padding:10px 8px;">${escHtml(industry)}</td></tr>
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">LinkedIn</td><td style="padding:10px 8px;">${escHtml(linkedin || '–')}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Social</td><td style="padding:10px 8px;">${escHtml(social || '–')}</td></tr>
-            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">NDA</td><td style="padding:10px 8px;color:green;">✓ Accepted</td></tr>
-            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Date</td><td style="padding:10px 8px;">${dateStr}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Personal Background</td><td style="padding:10px 8px;">${escHtml(background || '–')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Interest in PYC</td><td style="padding:10px 8px;">${escHtml(interest || '–')}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Investment Perspective</td><td style="padding:10px 8px;">${escHtml(investmentPerspective || '–')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">NDA</td><td style="padding:10px 8px;color:green;">✓ Accepted</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Date</td><td style="padding:10px 8px;">${dateStr}</td></tr>
           </table>
         </div>
       `,
