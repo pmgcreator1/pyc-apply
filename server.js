@@ -69,7 +69,7 @@ app.get('/apply', (req, res) => {
 app.get('/', (req, res) => res.redirect('/apply'));
 
 app.post('/api/apply', async (req, res) => {
-  const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, background, interest, investmentPerspective, ndaAccepted } = req.body;
+  const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, background, interest, investmentPerspective, ndaAccepted, utmSource, utmMedium, utmCampaign } = req.body;
 
   if (!firstName || !lastName || !email || !phone || !jobTitle || !industry || !background || !interest || !investmentPerspective)
     return res.status(400).json({ ok: false, error: 'Missing required fields' });
@@ -86,6 +86,14 @@ app.post('/api/apply', async (req, res) => {
     contact: { firstName, lastName, email, phone },
     profile: { jobTitle, company: company || '', industry, linkedin: linkedin || '', social: social || '', background: background || '', interest: interest || '', investmentPerspective: investmentPerspective || '' },
     ndaAccepted: true,
+    meta: {
+      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '',
+      userAgent: req.headers['user-agent'] || '',
+      referrer: req.headers['referer'] || '',
+      utmSource: utmSource || '',
+      utmMedium: utmMedium || '',
+      utmCampaign: utmCampaign || '',
+    },
   });
   saveDb(db);
 
@@ -148,6 +156,13 @@ app.post('/api/apply', async (req, res) => {
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Investment Perspective</td><td style="padding:10px 8px;">${escHtml(investmentPerspective || '–')}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">NDA</td><td style="padding:10px 8px;color:green;">✓ Accepted</td></tr>
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Date</td><td style="padding:10px 8px;">${dateStr}</td></tr>
+            <tr style="background:#f5f5f5;"><td colspan="2" style="padding:10px 8px;font-weight:bold;color:#999;font-size:12px;letter-spacing:1px;">TRACKING</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">IP Address</td><td style="padding:10px 8px;">${escHtml(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '–')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Browser</td><td style="padding:10px 8px;">${escHtml(req.headers['user-agent'] || '–')}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Referrer</td><td style="padding:10px 8px;">${escHtml(req.headers['referer'] || '–')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">UTM Source</td><td style="padding:10px 8px;">${escHtml(utmSource || '–')}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">UTM Medium</td><td style="padding:10px 8px;">${escHtml(utmMedium || '–')}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">UTM Campaign</td><td style="padding:10px 8px;">${escHtml(utmCampaign || '–')}</td></tr>
           </table>
         </div>
       `,
