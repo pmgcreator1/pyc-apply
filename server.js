@@ -9,6 +9,26 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const DB_PATH = path.join(__dirname, 'db.json');
 
+async function geoLookup(ip) {
+  try {
+    const raw = (ip || '').split(',')[0].trim();
+    if (!raw || raw === '::1' || raw.startsWith('127.') || raw.startsWith('10.') ||
+        raw.startsWith('192.168.') || /^172\.(1[6-9]|2\d|3[01])\./.test(raw)) {
+      return { city: 'Local', region: '', country: '', isp: '' };
+    }
+    const res = await fetch(`http://ip-api.com/json/${encodeURIComponent(raw)}?fields=status,city,regionName,country,org,isp`);
+    const data = await res.json();
+    if (data.status !== 'success') return { city: '', region: '', country: '', isp: '' };
+    return { city: data.city || '', region: data.regionName || '', country: data.country || '', isp: data.org || data.isp || '' };
+  } catch {
+    return { city: '', region: '', country: '', isp: '' };
+  }
+}
+
+function clientIp(req) {
+  return (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
+}
+
 console.log('[startup] BREVO_API_KEY set:', !!process.env.BREVO_API_KEY);
 
 // Load handout PDF once at startup
@@ -38,7 +58,7 @@ function escHtml(str) {
 
 async function sendEmail({ to, subject, html, fromName = 'Private Yacht Club', attachment = null }) {
   const body = {
-    sender: { name: fromName, email: 'membershippyc@outlook.de' },
+    sender: { name: fromName, email: 'membership@privateyachtclub.com' },
     to: [{ email: to }],
     subject,
     htmlContent: html,
@@ -68,6 +88,81 @@ app.get('/apply', (req, res) => {
 
 app.get('/', (req, res) => res.redirect('/apply'));
 
+app.post('/api/visit', async (req, res) => {
+  const ip = clientIp(req);
+  const { utmSource, utmMedium, utmCampaign } = req.body || {};
+  const geo = await geoLookup(ip);
+  const db = loadDb();
+  if (!db.visits) db.visits = [];
+  db.visits.push({
+    id: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    ip,
+    geo,
+    userAgent: req.headers['user-agent'] || '',
+    referrer: req.headers['referer'] || '',
+    utmSource: utmSource || '',
+    utmMedium: utmMedium || '',
+    utmCampaign: utmCampaign || '',
+  });
+  saveDb(db);
+  res.json({ ok: true });
+});
+
+function checkAdminKey(req, res) {
+  const key = process.env.ADMIN_KEY;
+  if (!key) { res.status(503).json({ ok: false, error: 'ADMIN_KEY not configured' }); return false; }
+  const provided = req.headers['x-admin-key'] || req.query.key;
+  if (provided !== key) { res.status(401).json({ ok: false, error: 'Unauthorized' }); return false; }
+  return true;
+}
+
+app.get('/api/analytics', (req, res) => {
+  if (!checkAdminKey(req, res)) return;
+  const db = loadDb();
+  const visits = db.visits || [];
+  const leads = db.leads || [];
+
+  const cityMap = {};
+  for (const v of visits) {
+    const key = [v.geo?.city, v.geo?.country].filter(Boolean).join(', ') || 'Unknown';
+    if (!cityMap[key]) cityMap[key] = { city: v.geo?.city || '', country: v.geo?.country || '', visits: 0, lastSeen: '' };
+    cityMap[key].visits++;
+    if (!cityMap[key].lastSeen || v.timestamp > cityMap[key].lastSeen) cityMap[key].lastSeen = v.timestamp;
+  }
+
+  const leadsByCity = {};
+  for (const l of leads) {
+    const key = [l.meta?.geo?.city, l.meta?.geo?.country].filter(Boolean).join(', ') || 'Unknown';
+    leadsByCity[key] = (leadsByCity[key] || 0) + 1;
+  }
+
+  res.json({
+    ok: true,
+    summary: {
+      totalVisits: visits.length,
+      totalLeads: leads.length,
+      uniqueCities: Object.keys(cityMap).length,
+    },
+    cities: Object.entries(cityMap)
+      .map(([k, v]) => ({ label: k, ...v, leads: leadsByCity[k] || 0 }))
+      .sort((a, b) => b.visits - a.visits),
+    recentVisits: visits.slice(-50).reverse().map(v => ({
+      timestamp: v.timestamp,
+      city: [v.geo?.city, v.geo?.country].filter(Boolean).join(', ') || 'Unknown',
+      referrer: v.referrer || '',
+      utmSource: v.utmSource || '',
+      utmCampaign: v.utmCampaign || '',
+    })),
+    recentLeads: leads.slice(-20).reverse().map(l => ({
+      submittedAt: l.submittedAt,
+      name: `${l.contact?.firstName} ${l.contact?.lastName}`,
+      city: [l.meta?.geo?.city, l.meta?.geo?.country].filter(Boolean).join(', ') || 'Unknown',
+      industry: l.profile?.industry || '',
+    })),
+  });
+});
+
 app.post('/api/apply', async (req, res) => {
   const { firstName, lastName, email, phone, jobTitle, company, industry, linkedin, social, background, interest, investmentPerspective, ndaAccepted, utmSource, utmMedium, utmCampaign } = req.body;
 
@@ -78,6 +173,9 @@ app.post('/api/apply', async (req, res) => {
   if (ndaAccepted !== true)
     return res.status(400).json({ ok: false, error: 'NDA must be accepted' });
 
+  const ip = clientIp(req);
+  const geo = await geoLookup(ip);
+
   const db = loadDb();
   if (!db.leads) db.leads = [];
   db.leads.push({
@@ -87,7 +185,8 @@ app.post('/api/apply', async (req, res) => {
     profile: { jobTitle, company: company || '', industry, linkedin: linkedin || '', social: social || '', background: background || '', interest: interest || '', investmentPerspective: investmentPerspective || '' },
     ndaAccepted: true,
     meta: {
-      ip: req.headers['x-forwarded-for'] || req.socket.remoteAddress || '',
+      ip,
+      geo,
       userAgent: req.headers['user-agent'] || '',
       referrer: req.headers['referer'] || '',
       utmSource: utmSource || '',
@@ -136,7 +235,7 @@ app.post('/api/apply', async (req, res) => {
 
   try {
     await sendEmail({
-      to: 'membershippyc@outlook.de',
+      to: 'membership@privateyachtclub.com',
       subject: `New Enquiry: ${escHtml(firstName)} ${escHtml(lastName)}`,
       fromName: 'PYC System',
       html: `
@@ -157,7 +256,8 @@ app.post('/api/apply', async (req, res) => {
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">NDA</td><td style="padding:10px 8px;color:green;">✓ Accepted</td></tr>
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Date</td><td style="padding:10px 8px;">${dateStr}</td></tr>
             <tr style="background:#f5f5f5;"><td colspan="2" style="padding:10px 8px;font-weight:bold;color:#999;font-size:12px;letter-spacing:1px;">TRACKING</td></tr>
-            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">IP Address</td><td style="padding:10px 8px;">${escHtml(req.headers['x-forwarded-for'] || req.socket.remoteAddress || '–')}</td></tr>
+            <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Location</td><td style="padding:10px 8px;"><strong>${escHtml([geo.city, geo.region, geo.country].filter(Boolean).join(', ') || '–')}</strong>${geo.isp ? ` &nbsp;·&nbsp; ${escHtml(geo.isp)}` : ''}</td></tr>
+            <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">IP Address</td><td style="padding:10px 8px;">${escHtml(ip || '–')}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">Browser</td><td style="padding:10px 8px;">${escHtml(req.headers['user-agent'] || '–')}</td></tr>
             <tr><td style="padding:10px 8px;font-weight:bold;color:#555;">Referrer</td><td style="padding:10px 8px;">${escHtml(req.headers['referer'] || '–')}</td></tr>
             <tr style="background:#f9f9f9;"><td style="padding:10px 8px;font-weight:bold;color:#555;">UTM Source</td><td style="padding:10px 8px;">${escHtml(utmSource || '–')}</td></tr>

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PYC Analytics</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --navy: #0d1b2a;
+      --navy-mid: #1a2f45;
+      --gold: #c9a84c;
+      --white: #f8f6f1;
+      --muted: #7a8a99;
+      --font: 'DM Sans', system-ui, Arial, sans-serif;
+    }
+    body { font-family: var(--font); background: var(--navy); color: var(--white); min-height: 100vh; }
+    #login { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-box { background: var(--navy-mid); border: 1px solid rgba(201,168,76,.25); border-radius: 8px; padding: 40px; width: 340px; text-align: center; }
+    .login-box h1 { font-size: 20px; font-weight: 400; color: var(--gold); margin-bottom: 8px; letter-spacing: 3px; text-transform: uppercase; }
+    .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+    input[type=password] { width: 100%; padding: 10px 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(201,168,76,.3); border-radius: 4px; color: var(--white); font-size: 14px; outline: none; }
+    input[type=password]:focus { border-color: var(--gold); }
+    button.btn { margin-top: 14px; width: 100%; padding: 11px; background: var(--gold); color: var(--navy); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; border: none; border-radius: 4px; cursor: pointer; }
+    button.btn:hover { background: #d4b55a; }
+    #err { margin-top: 12px; font-size: 13px; color: #e05a5a; display: none; }
+
+    #app { display: none; padding: 32px; max-width: 1100px; margin: 0 auto; }
+    header { display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(201,168,76,.2); padding-bottom: 20px; margin-bottom: 32px; }
+    header h1 { font-size: 14px; font-weight: 400; letter-spacing: 4px; text-transform: uppercase; color: var(--gold); }
+    header span { font-size: 12px; color: var(--muted); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: var(--navy-mid); border: 1px solid rgba(201,168,76,.15); border-radius: 6px; padding: 20px 24px; }
+    .stat .label { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat .value { font-size: 32px; font-weight: 300; color: var(--gold); }
+
+    .section { margin-bottom: 36px; }
+    .section h2 { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,.06); padding-bottom: 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 12px; color: var(--muted); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 400; }
+    td { padding: 10px 12px; border-top: 1px solid rgba(255,255,255,.05); }
+    tr:hover td { background: rgba(255,255,255,.03); }
+    .bar-cell { display: flex; align-items: center; gap: 10px; }
+    .bar { height: 6px; background: var(--gold); border-radius: 3px; opacity: .7; min-width: 2px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; background: rgba(201,168,76,.15); color: var(--gold); }
+    .ts { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+    .ref { color: var(--muted); font-size: 12px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #loading { text-align: center; padding: 60px; color: var(--muted); letter-spacing: 2px; font-size: 12px; text-transform: uppercase; }
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div id="login">
+  <div class="login-box">
+    <h1>PYC</h1>
+    <p>Analytics — restricted access</p>
+    <input type="password" id="keyInput" placeholder="Enter access key" />
+    <button class="btn" onclick="doLogin()">Enter</button>
+    <div id="err">Invalid key</div>
+  </div>
+</div>
+
+<div id="app">
+  <div id="loading">Loading…</div>
+  <div id="content" style="display:none">
+    <header>
+      <h1>Private Yacht Club &nbsp;·&nbsp; Visitor Analytics</h1>
+      <span id="refreshed"></span>
+    </header>
+
+    <div class="stats">
+      <div class="stat"><div class="label">Total Visits</div><div class="value" id="totalVisits">–</div></div>
+      <div class="stat"><div class="label">Unique Cities</div><div class="value" id="uniqueCities">–</div></div>
+      <div class="stat"><div class="label">Applications</div><div class="value" id="totalLeads">–</div></div>
+    </div>
+
+    <div class="section">
+      <h2>Visits by City</h2>
+      <table>
+        <thead><tr><th>City</th><th>Country</th><th>Visits</th><th>Applications</th><th>Last Seen</th></tr></thead>
+        <tbody id="cityRows"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Recent Applications</h2>
+      <table>
+        <thead><tr><th>Date</th><th>Name</th><th>City</th><th>Industry</th></tr></thead>
+        <tbody id="leadRows"></tbody>
+      </table>
+    </div>
+
+    <div class="section">
+      <h2>Recent Page Visits</h2>
+      <table>
+        <thead><tr><th>Time</th><th>City</th><th>Source</th><th>Referrer</th></tr></thead>
+        <tbody id="visitRows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  let _key = sessionStorage.getItem('adminKey') || '';
+  if (_key) tryLoad();
+
+  document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+  function doLogin() {
+    _key = document.getElementById('keyInput').value.trim();
+    tryLoad();
+  }
+
+  async function tryLoad() {
+    const res = await fetch('/api/analytics?key=' + encodeURIComponent(_key));
+    if (res.status === 401) {
+      document.getElementById('err').style.display = 'block';
+      _key = '';
+      return;
+    }
+    sessionStorage.setItem('adminKey', _key);
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    const data = await res.json();
+    render(data);
+  }
+
+  function fmt(iso) {
+    if (!iso) return '–';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' ' +
+           d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function render(data) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    document.getElementById('refreshed').textContent = 'Refreshed ' + fmt(new Date().toISOString());
+
+    document.getElementById('totalVisits').textContent = data.summary.totalVisits;
+    document.getElementById('uniqueCities').textContent = data.summary.uniqueCities;
+    document.getElementById('totalLeads').textContent = data.summary.totalLeads;
+
+    const maxVisits = Math.max(1, ...data.cities.map(c => c.visits));
+    document.getElementById('cityRows').innerHTML = data.cities.map(c => `
+      <tr>
+        <td>${esc(c.city || '–')}</td>
+        <td>${esc(c.country || '–')}</td>
+        <td>
+          <div class="bar-cell">
+            <div class="bar" style="width:${Math.round(c.visits / maxVisits * 120)}px"></div>
+            <strong>${c.visits}</strong>
+          </div>
+        </td>
+        <td>${c.leads ? `<span class="badge">${c.leads}</span>` : '<span style="color:var(--muted)">–</span>'}</td>
+        <td class="ts">${fmt(c.lastSeen)}</td>
+      </tr>`).join('');
+
+    document.getElementById('leadRows').innerHTML = data.recentLeads.map(l => `
+      <tr>
+        <td class="ts">${fmt(l.submittedAt)}</td>
+        <td>${esc(l.name)}</td>
+        <td>${esc(l.city)}</td>
+        <td>${esc(l.industry)}</td>
+      </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted);padding:16px 12px">No applications yet</td></tr>';
+
+    document.getElementById('visitRows').innerHTML = data.recentVisits.map(v => `
+      <tr>
+        <td class="ts">${fmt(v.timestamp)}</td>
+        <td>${esc(v.city)}</td>
+        <td>${v.utmSource ? `<span class="badge">${esc(v.utmSource)}${v.utmCampaign ? ' / ' + esc(v.utmCampaign) : ''}</span>` : '<span style="color:var(--muted)">direct</span>'}</td>
+        <td class="ref" title="${esc(v.referrer)}">${esc(v.referrer) || '<span style="color:var(--muted)">–</span>'}</td>
+      </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted);padding:16px 12px">No visits logged yet</td></tr>';
+  }
+
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

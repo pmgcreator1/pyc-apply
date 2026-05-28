@@ -640,6 +640,16 @@
       };
     })();
 
+    // Passive visit tracking — fires silently on page load
+    (function () {
+      fetch('/api/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(_utmParams),
+        keepalive: true,
+      }).catch(() => {});
+    })();
+
     function startForm() {
       document.getElementById('hero').style.display = 'none';
       document.getElementById('formSection').style.display = 'block';
