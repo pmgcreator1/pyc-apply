@@ -1,13 +1,34 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Redis } = require('@upstash/redis');
 
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DB_PATH = path.join(__dirname, 'db.json');
+const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+});
+
+async function pushLead(lead) {
+  await redis.lpush('pyc:leads', JSON.stringify(lead));
+}
+
+async function pushVisit(visit) {
+  await redis.lpush('pyc:visits', JSON.stringify(visit));
+}
+
+async function getLeads() {
+  const raw = await redis.lrange('pyc:leads', 0, -1);
+  return raw.map(r => typeof r === 'string' ? JSON.parse(r) : r);
+}
+
+async function getVisits() {
+  const raw = await redis.lrange('pyc:visits', 0, -1);
+  return raw.map(r => typeof r === 'string' ? JSON.parse(r) : r);
+}
 
 async function geoLookup(ip) {
   try {
@@ -39,15 +60,6 @@ try {
   console.log('[startup] Handout PDF loaded:', Math.round(fs.statSync(HANDOUT_PATH).size / 1024) + 'KB');
 } catch {
   console.log('[startup] Handout PDF not found — emails will send without attachment');
-}
-
-function loadDb() {
-  try { return JSON.parse(fs.readFileSync(DB_PATH, 'utf8')); }
-  catch { return { leads: [] }; }
-}
-
-function saveDb(data) {
-  try { fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2) + '\n', 'utf8'); } catch {}
 }
 
 function escHtml(str) {
@@ -92,9 +104,7 @@ app.post('/api/visit', async (req, res) => {
   const ip = clientIp(req);
   const { utmSource, utmMedium, utmCampaign } = req.body || {};
   const geo = await geoLookup(ip);
-  const db = loadDb();
-  if (!db.visits) db.visits = [];
-  db.visits.push({
+  await pushVisit({
     id: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     ip,
@@ -105,7 +115,6 @@ app.post('/api/visit', async (req, res) => {
     utmMedium: utmMedium || '',
     utmCampaign: utmCampaign || '',
   });
-  saveDb(db);
   res.json({ ok: true });
 });
 
@@ -117,11 +126,9 @@ function checkAdminKey(req, res) {
   return true;
 }
 
-app.get('/api/analytics', (req, res) => {
+app.get('/api/analytics', async (req, res) => {
   if (!checkAdminKey(req, res)) return;
-  const db = loadDb();
-  const visits = db.visits || [];
-  const leads = db.leads || [];
+  const [visits, leads] = await Promise.all([getVisits(), getLeads()]);
 
   const cityMap = {};
   for (const v of visits) {
@@ -176,9 +183,7 @@ app.post('/api/apply', async (req, res) => {
   const ip = clientIp(req);
   const geo = await geoLookup(ip);
 
-  const db = loadDb();
-  if (!db.leads) db.leads = [];
-  db.leads.push({
+  await pushLead({
     id: crypto.randomUUID(),
     submittedAt: new Date().toISOString(),
     contact: { firstName, lastName, email, phone },
@@ -194,7 +199,6 @@ app.post('/api/apply', async (req, res) => {
       utmCampaign: utmCampaign || '',
     },
   });
-  saveDb(db);
 
   const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
