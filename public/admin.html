@@ -113,17 +113,31 @@
   }
 
   async function tryLoad() {
-    const res = await fetch('/api/analytics?key=' + encodeURIComponent(_key));
-    if (res.status === 401) {
-      document.getElementById('err').style.display = 'block';
-      _key = '';
-      return;
+    const errEl = document.getElementById('err');
+    errEl.style.display = 'none';
+    try {
+      const res = await fetch('/api/analytics?key=' + encodeURIComponent(_key));
+      if (res.status === 401) {
+        errEl.textContent = 'Invalid key';
+        errEl.style.display = 'block';
+        _key = '';
+        return;
+      }
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Server error ' + res.status }));
+        errEl.textContent = body.error || ('Server error ' + res.status);
+        errEl.style.display = 'block';
+        return;
+      }
+      sessionStorage.setItem('adminKey', _key);
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      const data = await res.json();
+      render(data);
+    } catch (e) {
+      errEl.textContent = 'Connection failed: ' + e.message;
+      errEl.style.display = 'block';
     }
-    sessionStorage.setItem('adminKey', _key);
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    const data = await res.json();
-    render(data);
   }
 
   function fmt(iso) {

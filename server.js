@@ -7,10 +7,12 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
-});
+// Upstash for Redis (via Vercel marketplace) may use different env var names
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || process.env.STORAGE_REST_API_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || process.env.STORAGE_REST_API_TOKEN;
+console.log('[startup] Redis URL set:', !!redisUrl, '| Token set:', !!redisToken);
+
+const redis = new Redis({ url: redisUrl, token: redisToken });
 
 async function pushLead(lead) {
   await redis.lpush('pyc:leads', JSON.stringify(lead));
@@ -128,7 +130,13 @@ function checkAdminKey(req, res) {
 
 app.get('/api/analytics', async (req, res) => {
   if (!checkAdminKey(req, res)) return;
-  const [visits, leads] = await Promise.all([getVisits(), getLeads()]);
+  let visits, leads;
+  try {
+    [visits, leads] = await Promise.all([getVisits(), getLeads()]);
+  } catch (err) {
+    console.error('[analytics] Redis error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Database connection failed: ' + err.message });
+  }
 
   const cityMap = {};
   for (const v of visits) {
