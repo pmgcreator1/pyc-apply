@@ -21,6 +21,10 @@
     .login-box p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
     input[type=password] { width: 100%; padding: 10px 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(201,168,76,.3); border-radius: 4px; color: var(--white); font-size: 14px; outline: none; }
     input[type=password]:focus { border-color: var(--gold); }
+    input[type=search] { width: 100%; max-width: 320px; margin-bottom: 14px; padding: 8px 12px; background: rgba(255,255,255,.05); border: 1px solid rgba(201,168,76,.3); border-radius: 4px; color: var(--white); font-size: 13px; outline: none; }
+    input[type=search]:focus { border-color: var(--gold); }
+    a.dl { color: var(--gold); text-decoration: none; font-size: 12px; border: 1px solid rgba(201,168,76,.4); padding: 4px 10px; border-radius: 4px; }
+    a.dl:hover { background: rgba(201,168,76,.15); }
     button.btn { margin-top: 14px; width: 100%; padding: 11px; background: var(--gold); color: var(--navy); font-size: 13px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; border: none; border-radius: 4px; cursor: pointer; }
     button.btn:hover { background: #d4b55a; }
     #err { margin-top: 12px; font-size: 13px; color: #e05a5a; display: none; }
@@ -98,14 +102,25 @@
         <tbody id="visitRows"></tbody>
       </table>
     </div>
+
+    <div class="section">
+      <h2>Signed NDAs <span id="ndaCount" style="color:var(--muted);letter-spacing:0"></span></h2>
+      <input type="search" id="ndaSearch" placeholder="Search by name or email…" autocomplete="off" />
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Signed</th><th>Version</th><th>Document</th></tr></thead>
+        <tbody id="ndaRows"></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
 <script>
   let _key = sessionStorage.getItem('adminKey') || '';
+  let _ndas = [];
   if (_key) tryLoad();
 
   document.getElementById('keyInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  document.getElementById('ndaSearch').addEventListener('input', renderNdas);
 
   function doLogin() {
     _key = document.getElementById('keyInput').value.trim();
@@ -134,6 +149,7 @@
       document.getElementById('app').style.display = 'block';
       const data = await res.json();
       render(data);
+      loadNdas();
     } catch (e) {
       errEl.textContent = 'Connection failed: ' + e.message;
       errEl.style.display = 'block';
@@ -186,6 +202,30 @@
         <td>${v.utmSource ? `<span class="badge">${esc(v.utmSource)}${v.utmCampaign ? ' / ' + esc(v.utmCampaign) : ''}</span>` : '<span style="color:var(--muted)">direct</span>'}</td>
         <td class="ref" title="${esc(v.referrer)}">${esc(v.referrer) || '<span style="color:var(--muted)">–</span>'}</td>
       </tr>`).join('') || '<tr><td colspan="4" style="color:var(--muted);padding:16px 12px">No visits logged yet</td></tr>';
+  }
+
+  async function loadNdas() {
+    try {
+      const res = await fetch('/api/ndas?key=' + encodeURIComponent(_key));
+      if (!res.ok) return; // NDA archive optional / not configured — skip silently
+      const data = await res.json();
+      _ndas = data.ndas || [];
+      renderNdas();
+    } catch { /* leave section empty on error */ }
+  }
+
+  function renderNdas() {
+    const q = (document.getElementById('ndaSearch').value || '').trim().toLowerCase();
+    const rows = _ndas.filter(n => !q || (n.name + ' ' + n.email).toLowerCase().includes(q));
+    document.getElementById('ndaCount').textContent = _ndas.length ? '· ' + _ndas.length : '';
+    document.getElementById('ndaRows').innerHTML = rows.map(n => `
+      <tr>
+        <td>${esc(n.name)}</td>
+        <td>${esc(n.email)}</td>
+        <td class="ts">${fmt(n.signedAt)}</td>
+        <td><span class="badge">${esc(n.ndaVersion || '–')}</span></td>
+        <td>${n.downloadUrl ? `<a class="dl" href="${esc(n.downloadUrl)}" target="_blank" rel="noopener">Download</a>` : '<span style="color:var(--muted)">–</span>'}</td>
+      </tr>`).join('') || '<tr><td colspan="5" style="color:var(--muted);padding:16px 12px">No NDAs yet</td></tr>';
   }
 
   function esc(s) {
